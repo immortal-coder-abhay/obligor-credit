@@ -1,0 +1,51 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Data — never commit raw or processed datasets
+data/raw/*
+data/processed/*
+!data/**/.gitkeep
+
+# Generated figures (commit only the curated ones in figures/final/)
+figures/exploratory/*
+!figures/exploratory/.gitkeep
+
+# Notebook checkpoints and OS junk
+.ipynb_checkpoints/
+.DS_Store
+
+# Models
+models/*.pkl
+models/*.joblib
+# The dashboard needs this 4 KB calibrator on Streamlit Cloud
+!models/isotonic_lgb.joblib
+!models/.gitkeep
+
+# Local-only agent guidance and scratch outputs
+CLAUDE.md
+.claude/
+output/
+
+# Local environments, credentials and generated caches
+.DS_Store
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+!.env.template
+.ruff_cache/
+.pytest_cache/
+__pycache__/
+*.egg-info/
+node_modules/
+*.log
+/tmp/
