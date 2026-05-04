@@ -64,3 +64,12 @@ def load_raw(filename: str = "accepted_2007_to_2018Q4.csv") -> pd.DataFrame:
     df = pd.read_csv(path, low_memory=False)
     df["issue_d"] = pd.to_datetime(df["issue_d"], format="%b-%Y", errors="coerce")
     return df
+
+
+def filter_to_completed_loans(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep only loans with a final outcome (Fully Paid or Charged Off).
+
+    Loans with status `Current`, `In Grace Period`, `Late ...` are still in flight —
+    we don't yet know whether they'll default, so they can't be used for training or evaluation.
+    """
+    return df[df["loan_status"].isin(COMPLETED_STATUSES)].copy()
