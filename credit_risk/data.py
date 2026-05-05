@@ -73,3 +73,16 @@ def filter_to_completed_loans(df: pd.DataFrame) -> pd.DataFrame:
     we don't yet know whether they'll default, so they can't be used for training or evaluation.
     """
     return df[df["loan_status"].isin(COMPLETED_STATUSES)].copy()
+
+
+def temporal_split(
+    df: pd.DataFrame, issue_date_col: str = "issue_d"
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Split into (train, test) on issue date — no random shuffling.
+
+    Train: issued <= TRAIN_END_YEAR. Test: issued >= TEST_START_YEAR.
+    """
+    year = df[issue_date_col].dt.year
+    train = df[year <= TRAIN_END_YEAR].copy()
+    test = df[year >= TEST_START_YEAR].copy()
+    return train, test
