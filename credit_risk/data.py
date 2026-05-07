@@ -86,3 +86,23 @@ def temporal_split(
     train = df[year <= TRAIN_END_YEAR].copy()
     test = df[year >= TEST_START_YEAR].copy()
     return train, test
+
+
+def filter_to_matured_loans(
+    df: pd.DataFrame,
+    snapshot_date: str | pd.Timestamp = "2018-12-31",
+) -> pd.DataFrame:
+    """Keep only loans whose full term has elapsed by `snapshot_date`.
+
+    Loans that finalize close to the dataset snapshot are a biased sample —
+    early defaulters and early prepayers dominate, while loans with normal
+    timelines are still in flight and don't appear as completed at all. Their
+    realized economics look much worse than the underlying population's.
+    Filtering by maturity removes this bias.
+
+    `term` is parsed from the LC string format (e.g. " 36 months").
+    """
+    snapshot = pd.Timestamp(snapshot_date)
+    term_months = df["term"].str.extract(r"(\d+)", expand=False).astype(int)
+    expected_end = df["issue_d"] + pd.to_timedelta(term_months * 30, unit="D")
+    return df[expected_end <= snapshot].copy()
