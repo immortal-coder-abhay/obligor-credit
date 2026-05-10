@@ -56,3 +56,33 @@ def _parse_pct(series: pd.Series) -> pd.Series:
     if not pd.api.types.is_numeric_dtype(series):
         return pd.to_numeric(series.astype(str).str.rstrip("%"), errors="coerce")
     return series
+
+
+def build_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Return a model-ready feature DataFrame.
+
+    Feature columns only — no target, no leakage. Missingness is preserved;
+    imputation is the model pipeline's job.
+    """
+    available_num = [c for c in NUMERIC_FEATURES if c in df.columns]
+    available_cat = [c for c in CATEGORICAL_FEATURES if c in df.columns]
+    out = df[available_num + available_cat].copy()
+
+    for col in ("int_rate", "revol_util"):
+        if col in out.columns:
+            out[col] = _parse_pct(out[col])
+
+    if "emp_length" in df.columns:
+        out["emp_length_years"] = df["emp_length"].map(_parse_emp_length)
+
+    if "annual_inc" in df.columns and "installment" in df.columns:
+        # Use np.nan (not pd.NA) so the result stays float64; pd.NA propagates
+        # a nullable Float64 dtype that breaks downstream pd.qcut / sklearn.
+        annual = df["annual_inc"].replace(0, np.nan)
+        out["installment_to_income"] = (df["installment"] * 12) / annual
+
+    if "earliest_cr_line" in df.columns and "issue_d" in df.columns:
+        eclm = pd.to_datetime(df["earliest_cr_line"], format="%b-%Y", errors="coerce")
+        out["credit_history_years"] = (df["issue_d"] - eclm).dt.days / 365.25
+
+    return out
