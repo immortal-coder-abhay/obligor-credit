@@ -86,3 +86,8 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
         out["credit_history_years"] = (df["issue_d"] - eclm).dt.days / 365.25
 
     return out
+
+
+def target(df: pd.DataFrame) -> pd.Series:
+    """Binary target: 1 if Charged Off, 0 if Fully Paid."""
+    return (df["loan_status"] == "Charged Off").astype(int).rename("defaulted")
