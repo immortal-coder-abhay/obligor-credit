@@ -57,3 +57,64 @@ def train_logistic(X: pd.DataFrame, y: pd.Series) -> Pipeline:
     ])
     pipe.fit(X, y)
     return pipe
+
+
+def prepare_for_lgb(X: pd.DataFrame) -> pd.DataFrame:
+    """Convert string/object columns to pandas Categorical for native LGBM handling."""
+    X = X.copy()
+    for c in categorical_cols(X):
+        X[c] = X[c].astype("category")
+    return X
+
+
+def train_lightgbm(
+    X: pd.DataFrame,
+    y: pd.Series,
+    eval_set: tuple[pd.DataFrame, pd.Series] | None = None,
+    num_boost_round: int = 500,
+    seed: int = 0,
+) -> lgb.Booster:
+    """LightGBM with sensible defaults for tabular credit data.
+
+    When `eval_set` is provided, trains with early stopping (patience=20).
+    """
+    cat_cols = categorical_cols(X)
+    X_lgb = prepare_for_lgb(X)
+
+    params = {
+        "objective": "binary",
+        "metric": "binary_logloss",
+        "learning_rate": 0.05,
+        "num_leaves": 63,
+        "min_child_samples": 100,
+        "feature_fraction": 0.8,
+        "bagging_fraction": 0.8,
+        "bagging_freq": 5,
+        "seed": seed,
+        "verbose": -1,
+    }
+
+    train_set = lgb.Dataset(X_lgb, label=y, categorical_feature=cat_cols)
+    valid_sets = [train_set]
+    valid_names = ["train"]
+    callbacks: list = []
+    if eval_set is not None:
+        X_val, y_val = eval_set
+        val_set = lgb.Dataset(
+            prepare_for_lgb(X_val),
+            label=y_val,
+            categorical_feature=cat_cols,
+            reference=train_set,
+        )
+        valid_sets.append(val_set)
+        valid_names.append("val")
+        callbacks.append(lgb.early_stopping(20, verbose=False))
+
+    return lgb.train(
+        params,
+        train_set,
+        num_boost_round=num_boost_round,
+        valid_sets=valid_sets,
+        valid_names=valid_names,
+        callbacks=callbacks,
+    )
