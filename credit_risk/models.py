@@ -118,3 +118,17 @@ def train_lightgbm(
         valid_names=valid_names,
         callbacks=callbacks,
     )
+
+
+def predict_proba(model, X: pd.DataFrame) -> np.ndarray:
+    """Default probability for a fitted LR pipeline or LightGBM booster."""
+    if isinstance(model, lgb.Booster):
+        return model.predict(prepare_for_lgb(X))
+    return model.predict_proba(X)[:, 1]
+
+
+def calibrate(scores: np.ndarray, y: np.ndarray) -> IsotonicRegression:
+    """Fit isotonic regression mapping raw scores to calibrated probabilities."""
+    iso = IsotonicRegression(out_of_bounds="clip")
+    iso.fit(scores, y)
+    return iso
