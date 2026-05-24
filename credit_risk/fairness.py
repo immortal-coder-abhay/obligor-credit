@@ -52,3 +52,22 @@ def group_metrics(
         .sort_values("approval_rate", ascending=False)
         .reset_index(drop=True)
     )
+
+
+def disparate_impact(
+    metrics: pd.DataFrame,
+    group_col: str,
+    reference_group,
+) -> pd.DataFrame:
+    """Apply the 80% rule: each group's approval rate / reference group's approval rate.
+
+    The classic threshold is 0.8 (a ratio below that is the flag).
+    """
+    ref_rows = metrics[metrics[group_col] == reference_group]
+    if ref_rows.empty:
+        raise ValueError(f"Reference group {reference_group!r} not found in metrics")
+    ref_rate = float(ref_rows["approval_rate"].iloc[0])
+    out = metrics.copy()
+    out["disparate_impact_ratio"] = (out["approval_rate"] / ref_rate).round(3)
+    out["flagged"] = out["disparate_impact_ratio"] < 0.8
+    return out
