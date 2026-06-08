@@ -57,3 +57,50 @@ def economics_row(profit, installment, interest, loss):
 <div class="economics-item"><div class="economics-label">Expected profit / loan</div><div class="economics-value">{"−" if profit < 0 else ""}${abs(profit):,.0f}</div><div class="economics-note">${interest:,.0f} weighted interest − ${loss:,.0f} weighted loss</div></div>
 <div class="economics-item"><div class="economics-label">Monthly installment</div><div class="economics-value">${installment:,.0f}</div><div class="economics-note">Fixed-rate amortization</div></div>
 <div class="economics-item"><div class="economics-label">Loss assumption</div><div class="economics-value">35<span style="font-size:18px">%</span></div><div class="economics-note">Of the original loan principal</div></div></div>""")
+
+
+def chart_layout(fig, height=300):
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Manrope", size=11, color=MUTED),
+        height=height,
+        margin=dict(l=5, r=20, t=25, b=30),
+        showlegend=False,
+        hoverlabel=dict(bgcolor="#f8fafc", font_color=INK, font_family="Manrope"),
+    )
+    fig.update_xaxes(gridcolor=LINE, zerolinecolor=LINE, tickfont=dict(size=10))
+    fig.update_yaxes(gridcolor=LINE, zerolinecolor=LINE, tickfont=dict(size=10))
+    return fig
+
+
+def profit_sensitivity(probability, interest, loss, threshold):
+    probabilities = np.linspace(0, 1, 101)
+    profits = (1 - probabilities) * interest - probabilities * loss
+    current = (1 - probability) * interest - probability * loss
+    fig = go.Figure(
+        go.Scatter(
+            x=probabilities * 100,
+            y=profits,
+            mode="lines",
+            line=dict(color=BLUE, width=3),
+            hovertemplate="Default probability %{x:.0f}%<br>Expected profit $%{y:,.0f}<extra></extra>",
+        )
+    )
+    fig.add_hline(y=0, line_width=1, line_color=MUTED)
+    fig.add_vline(x=threshold * 100, line_width=1, line_dash="dot", line_color=RUST)
+    fig.add_trace(
+        go.Scatter(
+            x=[probability * 100],
+            y=[current],
+            mode="markers",
+            marker=dict(size=12, color=BLUE, line=dict(width=3, color="#edf1f5")),
+            hovertemplate="This application<br>PD %{x:.1f}%<br>Expected profit $%{y:,.0f}<extra></extra>",
+        )
+    )
+    chart_layout(fig)
+    fig.update_xaxes(
+        title="Default probability (%)", range=[0, 100], showgrid=False, dtick=20
+    )
+    fig.update_yaxes(tickprefix="$", tickformat=",.0f", nticks=5)
+    return fig
