@@ -104,3 +104,45 @@ def profit_sensitivity(probability, interest, loss, threshold):
     )
     fig.update_yaxes(tickprefix="$", tickformat=",.0f", nticks=5)
     return fig
+
+
+def shap_chart(explanation, names):
+    values = np.asarray(explanation.values[0])
+    indices = np.argsort(np.abs(values))[-9:][::-1]
+    other = float(values.sum() - values[indices].sum())
+    labels = [
+        names.get(explanation.feature_names[i], explanation.feature_names[i])
+        for i in indices
+    ]
+    contributions = [float(values[i]) for i in indices]
+    labels.append("Other features")
+    contributions.append(other)
+    fig = go.Figure(
+        go.Bar(
+            y=labels[::-1],
+            x=contributions[::-1],
+            orientation="h",
+            marker_color=[RUST if v > 0 else BLUE for v in contributions[::-1]],
+            hovertemplate="%{y}<br>%{x:+.3f} log-odds<extra></extra>",
+        )
+    )
+    chart_layout(fig, height=380)
+    fig.update_layout(margin=dict(l=5, r=20, t=15, b=40))
+    fig.update_yaxes(showgrid=False)
+    fig.update_xaxes(
+        title="Contribution to default log-odds",
+        zeroline=True,
+        zerolinewidth=1,
+        zerolinecolor=MUTED,
+    )
+    return fig
+
+
+def drivers(explanation, names, format_input):
+    values = explanation.values[0]
+    for idx in np.argsort(np.abs(values))[::-1][:3]:
+        name = explanation.feature_names[idx]
+        value = float(values[idx])
+        html(
+            f"""<div class="driver"><div><div class="driver-name">{escape(names.get(name, name))}</div><div class="driver-input">{escape(format_input(name, explanation.data[0][idx]))}</div></div><div class="driver-effect {"lower" if value < 0 else ""}">{value:+.3f}<small>{"Lowers" if value < 0 else "Raises"} estimated risk</small></div></div>"""
+        )
