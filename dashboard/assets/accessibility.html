@@ -1,0 +1,60 @@
+<script>
+  (() => {
+    const doc = window.parent.document;
+    if (doc.__creditRiskAccessibility) return;
+    doc.__creditRiskAccessibility = true;
+    let pending = false;
+    const set = (node, name, value) => {
+      if (node && node.getAttribute(name) !== value)
+        node.setAttribute(name, value);
+    };
+    function repair() {
+      pending = false;
+      doc.querySelectorAll('[data-testid="stNumberInput"]').forEach((field) => {
+        const label =
+          field.querySelector("label")?.textContent?.trim() || "value";
+        set(
+          field.querySelector('[data-testid="stNumberInputStepDown"]'),
+          "aria-label",
+          `Decrease ${label}`,
+        );
+        set(
+          field.querySelector('[data-testid="stNumberInputStepUp"]'),
+          "aria-label",
+          `Increase ${label}`,
+        );
+      });
+      const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+      const open = doc.querySelector('[data-testid="stExpandSidebarButton"]');
+      const close = doc.querySelector(
+        '[data-testid="stSidebarCollapseButton"] button',
+      );
+      set(open, "aria-label", "Open loan inputs");
+      set(close, "aria-label", "Close loan inputs");
+      if (sidebar) {
+        set(sidebar, "role", "complementary");
+        set(sidebar, "aria-label", "Loan application");
+        // Expanded state belongs to the disclosure control, not the sidebar region.
+        const expanded = sidebar.getAttribute("aria-expanded");
+        if (expanded !== null) {
+          sidebar.dataset.expanded = expanded;
+          sidebar.removeAttribute("aria-expanded");
+        }
+        set(open, "aria-expanded", sidebar.dataset.expanded || "false");
+        set(close, "aria-expanded", sidebar.dataset.expanded || "false");
+      }
+    }
+    new MutationObserver(() => {
+      if (!pending) {
+        pending = true;
+        requestAnimationFrame(repair);
+      }
+    }).observe(doc.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["aria-expanded"],
+    });
+    repair();
+  })();
+</script>
